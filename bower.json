@@ -1,0 +1,17 @@
+{
+  "name": "d3",
+  "authors": [
+    "Andrii.kicha <acousticdesk@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "license": "MIT",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

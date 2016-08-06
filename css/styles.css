@@ -1,0 +1,15 @@
+html {
+    font-family: Roboto, sans-serif;
+}
+
+svg {
+    border: 1px solid #eee;
+}
+
+svg g.tick text {
+    fill: #202020;
+}
+
+svg path.domain {
+    fill: #555;
+}
