@@ -107,7 +107,7 @@ define(['d3'], function (d3) {
                 })
                 .append('circle')
                 .attr({
-                    'r': 10,
+                    'r': 3,
                     'fill': renderColor
                 });
         },
