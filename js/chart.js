@@ -17,6 +17,7 @@ define(['d3'], function (d3) {
         dateParser: undefined,
         currentDataXDomain: undefined,
         currentDataYDomain: undefined,
+        currencyColors: ['red', 'green', 'blue'],
         appendSvg: function () {
             this.svg = this.container.append('svg');
         },
@@ -43,12 +44,33 @@ define(['d3'], function (d3) {
             this.yScale.domain(this.currentDataYDomain);
         },
         initCurrentDataMaxAndMinValues: function () {
-            var data = this.data;
+            var data = this.data,
+                allCurrenciesMaxValues = [],
+                allCurrenciesMinValues = [],
+                minYValue = undefined,
+                maxYValue = undefined;
 
-            this.currentDataYDomain = d3.extent(data, function (item) {
-                return item.value;
+            //var allCurrenciesDomains = this.data.map(function (item) {
+            //    return d3.extent(item, function (current) { return current.value });
+            //});
+
+            /*this.currentDataYDomain = d3.extent(data, function (item) {
+             return item.value;
+             });*/
+
+            allCurrenciesMaxValues = data.map(function (item) {
+                return d3.max(item, function (current) { return current.value });
             });
-            this.currentDataXDomain = d3.extent(data, (function (item) {
+            allCurrenciesMinValues = data.map(function (item) {
+                return d3.min(item, function (current) { return current.value });
+            });
+
+            maxYValue = allCurrenciesMaxValues.sort().reverse()[0];
+            minYValue = allCurrenciesMinValues.sort()[0];
+
+            this.currentDataYDomain = [minYValue, maxYValue];
+            //TODO: Gets only first element of data and builds chart with it's dates. Needs to be refactored.
+            this.currentDataXDomain = d3.extent(data[0], (function (item) {
                 return this.dateParser.parse(item.date);
             }).bind(this));
         },
@@ -66,7 +88,7 @@ define(['d3'], function (d3) {
                     'transform': ['translate(',this.vizHorizontalPadding, ', 0)'].join('')
                 });
         },
-        renderDataPoints: function () {
+        renderDataPoints: function (currencyData, renderColor, currencyIndex) {
             var genereateTransformValue = (function (d) {
                 var xTranslate = this.xScale( this.dateParser.parse(d.date) ),
                     yTranslate = this.yScale(d.value),
@@ -75,51 +97,51 @@ define(['d3'], function (d3) {
                 return ['translate(', translate, ')'].join('');
             }).bind(this);
 
-            this.mainSvgGroup.selectAll('g.data-point')
-                .data(this.data)
+            this.mainSvgGroup.selectAll('g.data-point--' + currencyIndex)
+                .data(currencyData)
                 .enter()
                 .append('g')
                 .attr({
-                    'class': 'data-point',
+                    'class': 'data-point--' + currencyIndex,
                     'transform': genereateTransformValue
                 })
                 .append('circle')
                 .attr({
                     'r': 10,
-                    'fill': 'green'
+                    'fill': renderColor
                 });
         },
-        renderConnectLines: function () {
-            this.mainSvgGroup.selectAll('line.connect-line')
-                .data(this.data)
+        renderConnectLines: function (currencyData, renderColor, currencyIndex) {
+            this.mainSvgGroup.selectAll('line.connect-line--' + currencyIndex)
+                .data(currencyData)
                 .enter()
                 .append('line')
                 .attr({
-                    'class': 'connect-line',
-                    'stroke': 'green',
+                    'class': 'connect-line--' + currencyIndex,
+                    'stroke': renderColor,
                     'stroke-width': 2,
                     'x1': (function (d, i) {
-                        if (i !== this.data.length - 1) {
+                        if (i !== currencyData.length - 1) {
                             return this.xScale( this.dateParser.parse(d.date) );
                         }
                         return null;
                     }).bind(this),
                     'x2': (function (d, i) {
-                        if (i !== this.data.length - 1) {
-                            var nextItem = this.data[i + 1];
+                        if (i !== currencyData.length - 1) {
+                            var nextItem = currencyData[i + 1];
                             return this.xScale( this.dateParser.parse( nextItem.date ) );
                         }
                         return null;
                     }).bind(this),
                     'y1': (function (d, i) {
-                        if (i !== this.data.length - 1) {
+                        if (i !== currencyData.length - 1) {
                             return this.yScale(d.value);
                         }
                         return null;
                     }).bind(this),
                     'y2': (function (d, i) {
-                        if (i !== this.data.length - 1) {
-                            var nextItem = this.data[i + 1];
+                        if (i !== currencyData.length - 1) {
+                            var nextItem = currencyData[i + 1];
                             return this.yScale(nextItem.value);
                         }
                         return null;
@@ -155,8 +177,10 @@ define(['d3'], function (d3) {
             this.initYScale(settings);
             this.initXScale();
             this.initAxis();
-            this.renderDataPoints();
-            this.renderConnectLines();
+            this.data.forEach((function (item, index, array) {
+                this.renderDataPoints(item, this.currencyColors[index], index);
+                this.renderConnectLines(item, this.currencyColors[index], index);
+            }).bind(this));
         }
     };
 });
