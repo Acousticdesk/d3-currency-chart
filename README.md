@@ -2,7 +2,7 @@
 Chart for displaying currents currency rates. Gh-pages demo uses hardcoded data.
 
 #API Reference
-- Chart initializtion: <br />
+- Chart Initializtion: <br />
 chart.create(selector, data, settings); <br /><br />
 
 - Create Method Arguments: <br />
