@@ -164,6 +164,7 @@ define(['d3'], function (d3) {
                 .ticks(8);
             this.yAxis = d3.svg.axis().scale(this.yScale)
                 .orient('left')
+                .innerTickSize(-this.vizWidth)
                 .ticks(10);
             this.mainSvgGroup.append('g')
                 .attr({

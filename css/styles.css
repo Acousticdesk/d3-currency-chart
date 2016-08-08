@@ -17,3 +17,10 @@ g.x-axis path.domain {
 g.x-axis g.tick text {
     fill: #777777;
 }
+
+g.x-axis line,
+g.y-axis line {
+    fill: none;
+    stroke: #EFEFEF;
+    stroke-width: 1;
+}
