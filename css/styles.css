@@ -6,16 +6,24 @@ g.y-axis path.domain {
     display: none;
 }
 
-g.y-axis g.tick text {
-    fill: #868686;
+g.x-axis path.domain {
+    fill: none;
+    stroke: #F2F2F2;
+    stroke-width: 1;
 }
 
-g.x-axis path.domain {
-    fill: #F2F2F2;
+g.x-axis g.tick text,
+g.y-axis g.tick text {
+    fill: #000000;
+    font-size: 16px;
 }
 
 g.x-axis g.tick text {
-    fill: #777777;
+    opacity: 0.6;
+}
+
+g.y-axis g.tick text {
+    opacity: 0.54;
 }
 
 g.x-axis line,
@@ -23,4 +31,8 @@ g.y-axis line {
     fill: none;
     stroke: #EFEFEF;
     stroke-width: 1;
+}
+
+.pointer {
+    stroke-dasharray: 2,2;
 }

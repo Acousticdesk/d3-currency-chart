@@ -9,7 +9,7 @@ define(['d3'], function (d3) {
         vizWidth: undefined,
         vizHeight: undefined,
         vizVerticalPadding: 30,
-        vizHorizontalPadding: 30,
+        vizHorizontalPadding: 35,
         yScale: undefined,
         xScale: undefined,
         xAxis: undefined,
@@ -17,7 +17,7 @@ define(['d3'], function (d3) {
         dateParser: undefined,
         currentDataXDomain: undefined,
         currentDataYDomain: undefined,
-        currencyColors: ['red', 'green', 'blue'],
+        currencyColors: ['#FF784E', '#9BCC63', '#2CB7F6'],
         pointer: undefined,
         mouseoverTracker: undefined,
         allDataPoints: undefined,
@@ -54,14 +54,6 @@ define(['d3'], function (d3) {
                 allCurrenciesMinValues = [],
                 minYValue = undefined,
                 maxYValue = undefined;
-
-            //var allCurrenciesDomains = this.data.map(function (item) {
-            //    return d3.extent(item, function (current) { return current.value });
-            //});
-
-            /*this.currentDataYDomain = d3.extent(data, function (item) {
-             return item.value;
-             });*/
 
             allCurrenciesMaxValues = data.map(function (item) {
                 return d3.max(item, function (current) { return current.value });
@@ -127,7 +119,7 @@ define(['d3'], function (d3) {
                 .attr({
                     'class': 'connect-line connect-line--' + currencyIndex,
                     'stroke': renderColor,
-                    'stroke-width': 2,
+                    'stroke-width': 3,
                     'x1': (function (d, i) {
                         if (i !== currencyData.length - 1) {
                             return this.xScale( this.dateParser.parse(d.date) );
@@ -161,6 +153,11 @@ define(['d3'], function (d3) {
 
             this.xAxis = d3.svg.axis().scale(this.xScale)
                 .orient('bottom')
+                .tickFormat(function (d) {
+                    var month = d.getMonth() + 1,
+                        date = d.getDate();
+                    return [date > 9 ? date : '0' + date, '.', month > 9 ? month : '0' + month].join('');
+                })
                 .ticks(8);
             this.yAxis = d3.svg.axis().scale(this.yScale)
                 .orient('left')
