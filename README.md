@@ -7,7 +7,7 @@ chart.create(selector, data, settings); <br /><br />
 
 - Create Method Arguments: <br />
 *Selector - e.g. '#myChart'; <br />
-*Datata - e.g. https://github.com/Acousticdesk/d3-currency-chart/blob/master/js/data.js; <br />
+*Data - e.g. https://github.com/Acousticdesk/d3-currency-chart/blob/master/js/data.js; <br />
 *Settings:
   {
     width: int,
