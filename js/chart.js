@@ -209,7 +209,7 @@ define(['d3'], function (d3) {
                     'class': 'pointer',
                     'y1': 0,
                     'y2': this.vizHeight,
-                    'stroke': '#F1F1F1',
+                    'stroke': '#c1c1c1',
                     'stroke-width': 1
                 });
         },
