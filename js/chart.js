@@ -18,6 +18,11 @@ define(['d3'], function (d3) {
         currentDataXDomain: undefined,
         currentDataYDomain: undefined,
         currencyColors: ['red', 'green', 'blue'],
+        pointer: undefined,
+        mouseoverTracker: undefined,
+        allDataPoints: undefined,
+        allDataPointsCoordinates: undefined,
+        mainSvgGroupDimensions: undefined,
         appendSvg: function () {
             this.svg = this.container.append('svg');
         },
@@ -102,7 +107,8 @@ define(['d3'], function (d3) {
                 .enter()
                 .append('g')
                 .attr({
-                    'class': 'data-point--' + currencyIndex,
+                    'display': 'none',
+                    'class': 'data-point data-point--' + currencyIndex,
                     'transform': genereateTransformValue
                 })
                 .append('circle')
@@ -110,6 +116,8 @@ define(['d3'], function (d3) {
                     'r': 3,
                     'fill': renderColor
                 });
+
+            this.allDataPoints = d3.selectAll('g.data-point');
         },
         renderConnectLines: function (currencyData, renderColor, currencyIndex) {
             this.mainSvgGroup.selectAll('line.connect-line--' + currencyIndex)
@@ -117,7 +125,7 @@ define(['d3'], function (d3) {
                 .enter()
                 .append('line')
                 .attr({
-                    'class': 'connect-line--' + currencyIndex,
+                    'class': 'connect-line connect-line--' + currencyIndex,
                     'stroke': renderColor,
                     'stroke-width': 2,
                     'x1': (function (d, i) {
@@ -167,6 +175,66 @@ define(['d3'], function (d3) {
                 .attr('class', 'y-axis')
                 .call(this.yAxis);
         },
+        initUserInteractionEvents: function () {
+            var mouseCoordinates = [],
+                self = this;
+
+            this.mouseoverTracker.on('mousemove', function () {
+                d3.event.stopPropagation();
+
+                mouseCoordinates = d3.mouse(this);
+                var x = mouseCoordinates[0],
+                    y = mouseCoordinates[1];
+
+                if (!self.pointer) {
+                    self.appendPointerLine();
+                }
+
+                self.pointer.attr({
+                    'x1': x,
+                    'x2': x
+                });
+
+                self.allDataPoints.attr('display', 'none');
+
+                self.allDataPointsCoordinates.forEach(function (item, index, array) {
+                    var itemXPosition = window.parseFloat(item.coordinates[0]);
+                    if ( (x >= itemXPosition - 5) && (x <= itemXPosition + 5) ) {
+                        d3.select(item.node).attr('display', null);
+                    }
+                });
+            });
+        },
+        appendPointerLine: function () {
+            this.pointer = this.mainSvgGroup.append('line')
+                .attr({
+                    'class': 'pointer',
+                    'y1': 0,
+                    'y2': this.vizHeight,
+                    'stroke': '#F1F1F1',
+                    'stroke-width': 1
+                });
+        },
+        initAllDataPointsCoordinates: function () {
+            this.allDataPointsCoordinates = d3.selectAll('g.data-point')[0].map(function (item, index, array) {
+                return {
+                    node: item,
+                    coordinates: item.getAttribute('transform').replace('translate(', '').replace(')', '').split(',')
+                };
+            });
+        },
+        calculateMainSvgGroupSize: function () {
+            this.mainSvgGroupDimensions = this.mainSvgGroup.node().getBBox();
+        },
+        placeInvisibleRectToMainGroup: function () {
+            this.mouseoverTracker = this.mainSvgGroup.append('rect')
+                .attr({
+                    'class': 'mouseover-tracker',
+                    'width': this.mainSvgGroupDimensions.width,
+                    'height': this.mainSvgGroupDimensions.height,
+                    'fill': 'transparent'
+                });
+        },
         create: function (selector, data, settings) {
             this.container = d3.select(selector);
             this.data = data;
@@ -181,6 +249,10 @@ define(['d3'], function (d3) {
                 this.renderDataPoints(item, this.currencyColors[index], index);
                 this.renderConnectLines(item, this.currencyColors[index], index);
             }).bind(this));
+            this.initAllDataPointsCoordinates();
+            this.calculateMainSvgGroupSize();
+            this.placeInvisibleRectToMainGroup();
+            this.initUserInteractionEvents();
         }
     };
 });
