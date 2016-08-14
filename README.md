@@ -1,5 +1,5 @@
 #d3-currency-chart
-Chart for displaying currents currency rates. Gh-pages demo uses hardcoded data.
+Chart for displaying currents currency rates. Gh-pages demo uses hardcoded data. Has responsive layout. Resize your window to test.
 
 #API Reference
 - Chart Initializtion: <br />
