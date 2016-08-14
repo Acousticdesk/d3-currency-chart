@@ -1,5 +1,10 @@
-define(['d3'], function (d3) {
+define(['d3', 'jquery'], function (d3, $) {
     return {
+        created: false,
+        cachedInitialHeight: undefined,
+        selector: undefined,
+        settings: undefined,
+        timers: undefined,
         data: undefined,
         container: undefined,
         svg: undefined,
@@ -18,15 +23,29 @@ define(['d3'], function (d3) {
         currentDataXDomain: undefined,
         currentDataYDomain: undefined,
         currencyColors: ['#FF784E', '#9BCC63', '#2CB7F6'],
+        currencyRates: {
+            'ask': undefined,
+            'mar': undefined,
+            'bid': undefined
+        },
         pointer: undefined,
         mouseoverTracker: undefined,
+        collisionRange: 15,
         allDataPoints: undefined,
         allDataPointsCoordinates: undefined,
         mainSvgGroupDimensions: undefined,
         appendSvg: function () {
             this.svg = this.container.append('svg');
         },
-        initSvgAttrs: function (width, height) {
+        initSvgAttrs: function () {
+            var width = undefined,
+                height = undefined;
+
+            if (this.settings) {
+                width = this.settings.width;
+                height = this.settings.height;
+            }
+
             this.width = width || 640;
             this.height = height || 480;
 
@@ -34,6 +53,11 @@ define(['d3'], function (d3) {
                 width: this.width,
                 height: this.height
             });
+
+            if (width && ~width.toString().indexOf('%')) {
+                var svgWidth = this.svg.style('width');
+                this.width = window.parseInt(svgWidth);
+            }
         },
         initDateParser: function () {
             this.dateParser = d3.time.format('%Y-%m-%d');
@@ -42,7 +66,9 @@ define(['d3'], function (d3) {
             this.xScale = d3.time.scale().range([0, this.vizWidth]);
             this.xScale.domain(this.currentDataXDomain);
         },
-        initYScale: function (settings) {
+        initYScale: function () {
+            var settings = this.settings;
+
             this.yScale = d3.scale.linear().range([this.vizHeight, 0]);
             this.initCurrentDataMaxAndMinValues();
             this.setDataDomainPaddings(settings && settings.scalesMultiplier ? settings.scalesMultiplier : 1);
@@ -85,6 +111,9 @@ define(['d3'], function (d3) {
                     'transform': ['translate(',this.vizHorizontalPadding, ', 0)'].join('')
                 });
         },
+        removeDataPoints: function () {
+            d3.selectAll('.data-point').remove();
+        },
         renderDataPoints: function (currencyData, renderColor, currencyIndex) {
             var genereateTransformValue = (function (d) {
                 var xTranslate = this.xScale( this.dateParser.parse(d.date) ),
@@ -111,42 +140,83 @@ define(['d3'], function (d3) {
 
             this.allDataPoints = d3.selectAll('g.data-point');
         },
-        renderConnectLines: function (currencyData, renderColor, currencyIndex) {
-            this.mainSvgGroup.selectAll('line.connect-line--' + currencyIndex)
-                .data(currencyData)
-                .enter()
-                .append('line')
+        /*removeConnectLines: function (curencyIndex) {
+         d3.selectAll('.connect-line').remove();
+         },*/
+        removeConnectPaths: function (curencyIndex) {
+            d3.selectAll('.connect-path').remove();
+        },
+        renderConnectPathLine: function (currencyData, renderColor, currencyIndex) {
+            var className = 'connect-path connect-path--' + currencyIndex;/*,
+             currentPath = undefined;*/
+
+            this.mainSvgGroup.append('path')
+                .datum(currencyData)
                 .attr({
-                    'class': 'connect-line connect-line--' + currencyIndex,
+                    'fill': 'transparent',
                     'stroke': renderColor,
                     'stroke-width': 3,
-                    'x1': (function (d, i) {
-                        if (i !== currencyData.length - 1) {
-                            return this.xScale( this.dateParser.parse(d.date) );
-                        }
-                        return null;
-                    }).bind(this),
-                    'x2': (function (d, i) {
-                        if (i !== currencyData.length - 1) {
-                            var nextItem = currencyData[i + 1];
-                            return this.xScale( this.dateParser.parse( nextItem.date ) );
-                        }
-                        return null;
-                    }).bind(this),
-                    'y1': (function (d, i) {
-                        if (i !== currencyData.length - 1) {
-                            return this.yScale(d.value);
-                        }
-                        return null;
-                    }).bind(this),
-                    'y2': (function (d, i) {
-                        if (i !== currencyData.length - 1) {
-                            var nextItem = currencyData[i + 1];
-                            return this.yScale(nextItem.value);
-                        }
-                        return null;
-                    }).bind(this)
-                })
+                    'class': className,
+                    'd': this.pathDAttribute
+                });
+        },
+        handlePathsDrawAnimation: function () {
+            var pathLengths = [];
+
+            document.querySelectorAll('path.connect-path').forEach(function (item, index, array) {
+                pathLengths.push( window.parseInt(item.getTotalLength()) );
+            });
+
+            pathLengths.forEach(function (item, index, array) {
+                var path = d3.select('path.connect-path--' + index);
+                path.attr({
+                    'stroke-dasharray': pathLengths[index],
+                    'stroke-dashoffset': pathLengths[index]
+                });
+            });
+        },
+        /*renderConnectLines: function (currencyData, renderColor, currencyIndex) {
+         this.mainSvgGroup.selectAll('line.connect-line--' + currencyIndex)
+         .data(currencyData)
+         .enter()
+         .append('line')
+         .attr({
+         'class': 'connect-line connect-line--' + currencyIndex,
+         'stroke': renderColor,
+         'stroke-width': 3,
+         'x1': (function (d, i) {
+         if (i !== currencyData.length - 1) {
+         return this.xScale( this.dateParser.parse(d.date) );
+         }
+         return null;
+         }).bind(this),
+         'x2': (function (d, i) {
+         if (i !== currencyData.length - 1) {
+         var nextItem = currencyData[i + 1];
+         return this.xScale( this.dateParser.parse( nextItem.date ) );
+         }
+         return null;
+         }).bind(this),
+         'y1': (function (d, i) {
+         if (i !== currencyData.length - 1) {
+         return this.yScale(d.value);
+         }
+         return null;
+         }).bind(this),
+         'y2': (function (d, i) {
+         if (i !== currencyData.length - 1) {
+         var nextItem = currencyData[i + 1];
+         return this.yScale(nextItem.value);
+         }
+         return null;
+         }).bind(this)
+         })
+         },*/
+        resetAxis: function () {
+            d3.selectAll('.x-axis, .y-axis').remove();
+            this.xAxis = undefined;
+            this.yAxis = undefined;
+            this.initAxis();
         },
         initAxis: function () {
             var transform = ['translate(0, ', this.vizHeight, ')'].join('');
@@ -173,11 +243,30 @@ define(['d3'], function (d3) {
                 .attr('class', 'y-axis')
                 .call(this.yAxis);
         },
+        initWindowResizeEvents: function () {
+            var timers = this.timers || [];
+            $(window).on('resize', (function (e) {
+                var timeoutPromise = undefined;
+
+                timers.forEach(function (item, index, array) {
+                    window.clearTimeout(item);
+                });
+
+                timeoutPromise = window.setTimeout((function () {
+                    this.hardReset();
+                }).bind(this), 1000);
+
+                timers.push(timeoutPromise);
+            }).bind(this));
+        },
         initUserInteractionEvents: function () {
             var mouseCoordinates = [],
-                self = this;
+                self = this,
+                mouseoverTracker = this.mouseoverTracker;
 
-            this.mouseoverTracker.on('mousemove', function () {
+            mouseoverTracker.on('mousemove', null);
+
+            mouseoverTracker.on('mousemove', function () {
                 d3.event.stopPropagation();
 
                 mouseCoordinates = d3.mouse(this);
@@ -197,8 +286,13 @@ define(['d3'], function (d3) {
 
                 self.allDataPointsCoordinates.forEach(function (item, index, array) {
                     var itemXPosition = window.parseFloat(item.coordinates[0]);
-                    if ( (x >= itemXPosition - 5) && (x <= itemXPosition + 5) ) {
-                        d3.select(item.node).attr('display', null);
+
+                    if ( (x >= itemXPosition - self.collisionRange) && (x <= itemXPosition + self.collisionRange) ) {
+                        var itemNode = item.node,
+                            itemNodeData = itemNode.__data__;
+
+                        self.currencyRates[itemNodeData.type] = itemNodeData.value;
+                        d3.select(itemNode).attr('display', null);
                     }
                 });
             });
@@ -224,6 +318,10 @@ define(['d3'], function (d3) {
         calculateMainSvgGroupSize: function () {
             this.mainSvgGroupDimensions = this.mainSvgGroup.node().getBBox();
         },
+        removeInvisibleRect: function () {
+            d3.selectAll('.mouseover-tracker').remove();
+            this.mouseoverTracker = undefined;
+        },
         placeInvisibleRectToMainGroup: function () {
             this.mouseoverTracker = this.mainSvgGroup.append('rect')
                 .attr({
@@ -233,24 +331,76 @@ define(['d3'], function (d3) {
                     'fill': 'transparent'
                 });
         },
+        update: function (data, collisionRange) {
+            this.data = data;
+            if (collisionRange || (collisionRange === 0)) {
+                this.collisionRange = collisionRange;
+            }
+            this.initCurrentDataMaxAndMinValues();
+            this.yScale.domain(this.currentDataYDomain);
+            this.xScale.domain(this.currentDataXDomain);
+            this.resetAxis();
+            this.removeDataPoints();
+            this.removeConnectPaths();
+            // this.removeConnectLines();
+            this.data.forEach((function (item, index, array) {
+                this.renderDataPoints(item, this.currencyColors[index], index);
+                this.renderConnectPathLine(item, this.currencyColors[index], index);
+                // this.renderConnectLines(item, this.currencyColors[index], index);
+            }).bind(this));
+            this.initAllDataPointsCoordinates();
+            this.removeInvisibleRect();
+            this.placeInvisibleRectToMainGroup();
+            this.initUserInteractionEvents();
+            this.handlePathsDrawAnimation();
+        },
+        initPathDAttribute: function () {
+            this.pathDAttribute = d3.svg.line()
+                .x((function (d) { return this.xScale( this.dateParser.parse(d.date) ) }).bind(this))
+                .y((function (d) { return this.yScale(d.value ) }).bind(this))
+        },
+        setInitalHeight: function (settings) {
+            if (settings.height !== 150) {
+                this.cachedInitialHeight = settings.height;
+            }
+
+            if (settings.height && $(window).width() < 400) {
+                settings.height = 150;
+            } else if ($(window).width() > 400) {
+                settings.height = this.cachedInitialHeight;
+            }
+        },
+        hardReset: function () {
+            this.svg.remove();
+            this.created = false;
+            this.create(this.selector, this.data, this.settings);
+        },
         create: function (selector, data, settings) {
-            this.container = d3.select(selector);
+            this.setInitalHeight(settings);
+            this.selector = selector;
+            this.settings = settings;
+            this.container = d3.select(this.selector);
             this.data = data;
             this.appendSvg();
             this.initSvgAttrs();
             this.appendMainSvgGroup();
             this.initDateParser();
-            this.initYScale(settings);
+            this.initYScale();
             this.initXScale();
             this.initAxis();
+            this.initPathDAttribute();
             this.data.forEach((function (item, index, array) {
                 this.renderDataPoints(item, this.currencyColors[index], index);
-                this.renderConnectLines(item, this.currencyColors[index], index);
+                this.renderConnectPathLine(item, this.currencyColors[index], index);
+                // this.renderConnectLines(item, this.currencyColors[index], index);
             }).bind(this));
             this.initAllDataPointsCoordinates();
             this.calculateMainSvgGroupSize();
             this.placeInvisibleRectToMainGroup();
             this.initUserInteractionEvents();
+            this.initWindowResizeEvents();
+            this.created = true;
+            this.handlePathsDrawAnimation();
         }
-    };
+    }
 });
